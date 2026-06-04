@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spaced Repetition Study Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --surface: #141625;
+    --surface2: #1c1f35;
+    --border: #2a2d4a;
+    --accent: #6c63ff;
+    --text: #e8eaf6;
+    --muted: #7b7fa8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: auto;
+    padding: 2rem 1rem;
+    background-image:
+      radial-gradient(ellipse at 10% 20%, rgba(108,99,255,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(67,233,123,0.06) 0%, transparent 50%);
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(108,99,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    border-radius: 50%;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #6c63ff, #38f9d7, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 300;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.35rem 0.8rem;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Overall progress bar */
+  .overall-progress {
+    margin-bottom: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.4rem;
+  }
+
+  .overall-progress .prog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .overall-progress .prog-header strong {
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  .prog-track {
+    height: 10px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .prog-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #6c63ff, #43e97b);
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  /* Table wrapper */
+  .table-wrapper {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 0 60px rgba(108,99,255,0.08), 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    background: var(--surface);
+  }
+
+  thead th {
+    padding: 1rem 0.8rem;
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface2);
+    z-index: 10;
+  }
+
+  thead th:first-child {
+    text-align: left;
+    padding-left: 1.2rem;
+    min-width: 120px;
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+
+  tbody tr { transition: background 0.2s; }
+  tbody tr:hover { background: rgba(108,99,255,0.04); }
+  tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+
+  td {
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  td:first-child {
+    text-align: left;
+    padding-left: 1.2rem;
+    border-right: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 120px;
+    white-space: nowrap;
+  }
+
+  /* Day header */
+  .day-header { font-size: 0.75rem; line-height: 1.3; }
+  .day-num {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  /* Cells */
+  .cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .cell:hover { transform: scale(1.12); z-index: 5; }
+
+  .cell-new {
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    color: white;
+    box-shadow: 0 0 16px rgba(108,99,255,0.5);
+  }
+
+  .cell-r1 {
+    background: linear-gradient(135deg, #38f9d7, #43e97b);
+    color: #0d1a14;
+    box-shadow: 0 0 14px rgba(56,249,215,0.35);
+  }
+
+  .cell-r2 {
+    background: linear-gradient(135deg, #f7971e, #ffd200);
+    color: #1a0f00;
+    box-shadow: 0 0 14px rgba(247,151,30,0.35);
+  }
+
+  .cell-r3 {
+    background: linear-gradient(135deg, #ff6584, #ff4b6e);
+    color: white;
+    box-shadow: 0 0 14px rgba(255,101,132,0.35);
+  }
+
+  .cell-empty { width: 38px; height: 38px; }
+
+  /* Done state */
+  .cell.done {
+    animation: none !important;
+    background: linear-gradient(135deg, #1a2e1a, #1e3a1e) !important;
+    box-shadow: 0 0 10px rgba(67,233,123,0.25) !important;
+    border: 2px solid #43e97b !important;
+    color: transparent !important;
+    position: relative;
+    opacity: 0.9;
+  }
+
+  .cell.done::after {
+    content: '✔';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    color: #43e97b;
+    font-weight: 900;
+    border-radius: 8px;
+  }
+
+  @keyframes checkPop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    65%  { transform: scale(1.3); }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+
+  .cell.done-anim::after {
+    animation: checkPop 0.3s cubic-bezier(.4,1.6,.6,1) forwards;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .cell-new { animation: pulse 2.5s ease-in-out infinite; }
+
+  /* Lesson label */
+  .lesson-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .lesson-badge {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  /* Lesson complete badge */
+  .lesson-complete-badge {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    color: #0a2010;
+    font-size: 0.75rem;
+    font-weight: 900;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(67,233,123,0.5);
+  }
+
+  @keyframes badgePop {
+    0%   { transform: scale(0); opacity: 0; }
+    70%  { transform: scale(1.3); }
+    100% { transform: scale(1);  opacity: 1; }
+  }
+
+  .lesson-complete-badge.show {
+    display: inline-flex;
+    animation: badgePop 0.35s cubic-bezier(.4,1.6,.6,1) forwards;
+  }
+
+  .lesson-label.all-done .lesson-badge { opacity: 0.5; filter: grayscale(0.4); }
+  .lesson-label.all-done .lesson-name {
+    text-decoration: line-through;
+    opacity: 0.6;
+    text-decoration-color: #43e97b;
+  }
+
+  /* Progress bar row */
+  .progress-bar-row {
+    height: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    transition: width 1s ease;
+  }
+
+  /* Summary */
+  .summary-section {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+
+  .summary-card .big {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .summary-card .label {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  /* Tooltip */
+  #tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: #1c1f35;
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+    border: 1px solid var(--accent);
+    box-shadow: 0 4px 24px rgba(108,99,255,0.25);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  #tooltip.visible { opacity: 1; transform: translateY(0); }
+
+  #tooltip .tip-icon {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 1rem;
+  }
+
+  /* Reset button */
+  .reset-btn {
+    background: rgba(255,101,132,0.12);
+    border: 1px solid rgba(255,101,132,0.35);
+    color: #ff6584;
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .reset-btn:hover { background: rgba(255,101,132,0.22); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Spaced Repetition Study Schedule</h1>
+  <p class="subtitle">Each lesson is reviewed 4 times at increasing intervals</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:linear-gradient(135deg,#6c63ff,#a78bfa)"></span> New Read (Day 1)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:linear-gradient(135deg,#38f9d7,#43e97b)"></span> Review 1 (Next day)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:linear-gradient(135deg,#f7971e,#ffd200)"></span> Review 2 (After 3 days)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:linear-gradient(135deg,#ff6584,#ff4b6e)"></span> Review 3 (After 7 days)</div>
+</div>
+
+<div id="tooltip"><span class="tip-icon" id="tipIcon"></span><span id="tipText"></span></div>
+
+<div class="overall-progress">
+  <div class="prog-header">
+    <span>📊 Overall Progress <span id="saveIndicator" style="font-size:0.75rem;color:#43e97b;margin-left:6px;opacity:0;transition:opacity 0.4s;">✔ Saved</span></span>
+    <div style="display:flex;align-items:center;gap:0.8rem;">
+      <strong><span id="doneCount">0</span> / 28 sessions completed</strong>
+      <button class="reset-btn" onclick="resetProgress()">↺ Reset</button>
+    </div>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+</div>
+
+<div class="table-wrapper" id="tableContainer"></div>
+
+<div class="summary-section">
+  <div class="summary-card">
+    <div class="big" style="color:#6c63ff;">7</div>
+    <div class="label">Total Lessons</div>
+  </div>
+  <div class="summary-card">
+    <div class="big" id="totalDays" style="color:#38f9d7;">—</div>
+    <div class="label">Total Days</div>
+  </div>
+  <div class="summary-card">
+    <div class="big" style="color:#f7971e;">4×</div>
+    <div class="label">Reviews per Lesson</div>
+  </div>
+  <div class="summary-card">
+    <div class="big" style="color:#ff6584;">28</div>
+    <div class="label">Total Review Sessions</div>
+  </div>
+</div>
+
+<script>
+const lessons = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const lessonColors = [
+  { bg: 'linear-gradient(135deg,#6c63ff,#a78bfa)', text: 'white' },
+  { bg: 'linear-gradient(135deg,#ff6584,#ff4b6e)', text: 'white' },
+  { bg: 'linear-gradient(135deg,#43e97b,#38f9d7)', text: '#0a2010' },
+  { bg: 'linear-gradient(135deg,#f7971e,#ffd200)', text: '#1a0f00' },
+  { bg: 'linear-gradient(135deg,#4facfe,#00f2fe)', text: '#001a2e' },
+  { bg: 'linear-gradient(135deg,#f093fb,#f5576c)', text: 'white' },
+  { bg: 'linear-gradient(135deg,#5ee7df,#b490ca)', text: '#1a0a2e' },
+];
+
+const offsets    = [0, 1, 3, 7];
+const cellTypes  = ['cell-new', 'cell-r1', 'cell-r2', 'cell-r3'];
+const cellLabels = ['New', 'Review 1', 'Review 2', 'Review 3'];
+const cellIcons  = ['★', '↺', '↻', '✓'];
+
+const lessonStartDays = lessons.map((_, i) => i);
+const totalDays = lessonStartDays[lessonStartDays.length - 1] + offsets[offsets.length - 1] + 1;
+
+document.getElementById('totalDays').textContent = totalDays;
+
+// Build schedule
+const schedule = {};
+for (let d = 0; d < totalDays; d++) schedule[d] = [];
+
+lessons.forEach((_, li) => {
+  const start = lessonStartDays[li];
+  offsets.forEach((off, ri) => {
+    schedule[start + off].push({ li, ri });
+  });
+});
+
+// Build table
+const container = document.getElementById('tableContainer');
+const table = document.createElement('table');
+
+const thead = document.createElement('thead');
+const trHead = document.createElement('tr');
+const thFirst = document.createElement('th');
+thFirst.textContent = 'Lesson';
+trHead.appendChild(thFirst);
+
+for (let d = 0; d < totalDays; d++) {
+  const th = document.createElement('th');
+  th.innerHTML = `<div class="day-header"><span class="day-num">${d + 1}</span>Day</div>`;
+  trHead.appendChild(th);
+}
+thead.appendChild(trHead);
+table.appendChild(thead);
+
+const tbody = document.createElement('tbody');
+
+lessons.forEach((lesson, li) => {
+  const tr = document.createElement('tr');
+
+  const tdLabel = document.createElement('td');
+  tdLabel.innerHTML = `
+    <div class="lesson-label" id="label-${li}">
+      <span class="lesson-badge" style="background:${lessonColors[li].bg};color:${lessonColors[li].text}">${lesson}</span>
+      <span class="lesson-name">Lesson ${lesson}</span>
+      <span class="lesson-complete-badge" id="complete-badge-${li}">✔</span>
+    </div>`;
+  tr.appendChild(tdLabel);
+
+  for (let d = 0; d < totalDays; d++) {
+    const td = document.createElement('td');
+    const events = schedule[d].filter(e => e.li === li);
+
+    if (events.length > 0) {
+      events.forEach(ev => {
+        const span = document.createElement('span');
+        span.className = `cell ${cellTypes[ev.ri]}`;
+        span.textContent = cellIcons[ev.ri];
+        span.dataset.tip  = `Lesson ${lesson} — ${cellLabels[ev.ri]}`;
+        span.dataset.icon = cellIcons[ev.ri];
+        span.dataset.key  = `${li}-${ev.ri}-${d}`;
+        span.dataset.li   = li;
+        td.appendChild(span);
+      });
+    } else {
+      const empty = document.createElement('span');
+      empty.className = 'cell-empty';
+      td.appendChild(empty);
+    }
+
+    tr.appendChild(td);
+  }
+
+  tbody.appendChild(tr);
+
+  // Progress bar row
+  const trBar = document.createElement('tr');
+  const tdBar = document.createElement('td');
+  tdBar.setAttribute('colspan', totalDays + 1);
+  tdBar.innerHTML = `<div class="progress-bar-row"><div class="progress-bar-fill" style="background:${lessonColors[li].bg};width:0%" data-li="${li}"></div></div>`;
+  trBar.appendChild(tdBar);
+  tbody.appendChild(trBar);
+});
+
+table.appendChild(tbody);
+container.appendChild(table);
+
+// ── Save / Load (localStorage) ────────────────────────────────────
+const TOTAL_SESSIONS = 28;
+const STORAGE_KEY    = 'study-schedule-en-progress';
+const doneSet        = new Set();
+
+function saveProgress() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...doneSet]));
+  const ind = document.getElementById('saveIndicator');
+  if (ind) {
+    ind.style.opacity = '1';
+    clearTimeout(ind._t);
+    ind._t = setTimeout(() => ind.style.opacity = '0', 1800);
+  }
+}
+
+function loadProgress() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    JSON.parse(saved).forEach(key => {
+      doneSet.add(key);
+      const cell = document.querySelector(`.cell[data-key="${key}"]`);
+      if (cell) cell.classList.add('done');
+    });
+    updateProgress();
+    lessons.forEach((_, li) => checkLessonComplete(li));
+  } catch(e) {}
+}
+
+function resetProgress() {
+  if (!confirm('Are you sure you want to reset all progress?')) return;
+  doneSet.clear();
+  document.querySelectorAll('.cell.done').forEach(c => c.classList.remove('done', 'done-anim'));
+  saveProgress();
+  updateProgress();
+  lessons.forEach((_, li) => checkLessonComplete(li));
+}
+// ─────────────────────────────────────────────────────────────────
+
+function checkLessonComplete(li) {
+  const cells  = document.querySelectorAll(`.cell[data-li="${li}"]`);
+  const allDone = [...cells].every(c => doneSet.has(c.dataset.key));
+  const badge  = document.getElementById(`complete-badge-${li}`);
+  const label  = document.getElementById(`label-${li}`);
+  if (allDone) { badge.classList.add('show'); label.classList.add('all-done'); }
+  else         { badge.classList.remove('show'); label.classList.remove('all-done'); }
+}
+
+function updateProgress() {
+  const n = doneSet.size;
+  document.getElementById('doneCount').textContent = n;
+  document.getElementById('progFill').style.width = (n / TOTAL_SESSIONS * 100) + '%';
+}
+
+document.addEventListener('click', e => {
+  const cell = e.target.closest('.cell[data-tip]');
+  if (!cell) return;
+  const key = cell.dataset.key;
+  const li  = parseInt(cell.dataset.li);
+  if (doneSet.has(key)) {
+    doneSet.delete(key);
+    cell.classList.remove('done', 'done-anim');
+  } else {
+    doneSet.add(key);
+    cell.classList.add('done');
+    cell.classList.remove('done-anim');
+    void cell.offsetWidth;
+    cell.classList.add('done-anim');
+  }
+  saveProgress();
+  updateProgress();
+  checkLessonComplete(li);
+  hideTooltip();
+});
+
+loadProgress();
+
+// ── Tooltip ───────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+const tipText  = document.getElementById('tipText');
+const tipIcon  = document.getElementById('tipIcon');
+let hideTimer;
+
+function showTooltip(el, e) {
+  clearTimeout(hideTimer);
+  tipText.textContent = el.dataset.tip;
+  tipIcon.textContent = el.dataset.icon || '';
+  tooltip.classList.add('visible');
+  positionTooltip(e);
+}
+
+function positionTooltip(e) {
+  const pad = 12, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+  let x = e.clientX - tw / 2;
+  let y = e.clientY - th - pad;
+  if (x < pad) x = pad;
+  if (x + tw > window.innerWidth - pad) x = window.innerWidth - tw - pad;
+  if (y < pad) y = e.clientY + pad;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+
+function hideTooltip() {
+  hideTimer = setTimeout(() => tooltip.classList.remove('visible'), 120);
+}
+
+document.addEventListener('mouseover', e => {
+  const cell = e.target.closest('.cell[data-tip]');
+  if (cell) showTooltip(cell, e);
+});
+document.addEventListener('mousemove', e => {
+  if (tooltip.classList.contains('visible')) positionTooltip(e);
+});
+document.addEventListener('mouseout', e => {
+  if (e.target.closest('.cell[data-tip]')) hideTooltip();
+});
+document.addEventListener('touchstart', e => {
+  const cell = e.target.closest('.cell[data-tip]');
+  if (cell) {
+    const t = e.touches[0];
+    showTooltip(cell, { clientX: t.clientX, clientY: t.clientY });
+    setTimeout(hideTooltip, 2000);
+  }
+}, { passive: true });
+
+// Animate row progress bars
+setTimeout(() => {
+  document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+    const li    = parseInt(bar.dataset.li);
+    const start = lessonStartDays[li];
+    const end   = start + offsets[offsets.length - 1];
+    bar.style.width = ((end - start + 1) / totalDays * 100).toFixed(1) + '%';
+  });
+}, 300);
+</script>
+</body>
+</html>
